@@ -1,0 +1,59 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Set up Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Dependencies via Yarn
+        run: yarn install --ignore-engines
+
+      - name: Build Web Assets
+        run: yarn build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x android/gradlew
+
+      - name: Diagnostic Info
+        run: |
+          echo "=== Java Version ==="
+          java -version
+          echo "=== Node Version ==="
+          node -v
+          echo "=== Yarn Version ==="
+          yarn -v
+
+      - name: Build Android Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IonicPhotoGallery-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
